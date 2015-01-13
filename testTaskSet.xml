@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<problemStructure>
+    <task>
+        <provided>
+            <instance name="TravelDepartureDate" />
+            <instance name="HomeCity" />
+            <instance name="ConferenceCity" />
+            <instance name="TravelReturnDate" />
+        </provided>
+        <wanted>
+            <instance name="TouristMap" />
+            <instance name="TravelArrivalDate" />
+            <instance name="BusTicket" />
+            <instance name="HotelReservation" />
+        </wanted>
+    </task>
+    <solutions />
+</problemStructure>

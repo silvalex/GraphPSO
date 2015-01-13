@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<taxonomy>
+	<concept name="TravelInformation">
+		<concept name="Ticket">
+			<instance name="BusTicket" />
+		</concept>
+		<concept name="Location">
+			<instance name="MappedLocation" />
+			<concept name="City">
+				<instance name="BusDestinationCity" />
+				<instance name="FlightOriginCity" />
+				<instance name="FlightDestinationCity" />
+				<instance name="HomeCity" />
+				<instance name="ConferenceCity" />
+			</concept>
+		</concept>
+		<concept name="Map">
+		    <instance name="TouristMap" />
+			<concept name="UrbanMap">
+				<instance name="StreetMap" />
+			</concept>
+			<concept name="RuralMap">
+				<instance name="FarmMap" />
+			</concept>
+		</concept>
+		<concept name="Reservation">
+			<instance name="HotelReservation" />
+		</concept>
+		<concept name="Date">
+			<instance name="HotelCheckinDate" />
+			<instance name="HotelCheckoutDate" />
+		    <instance name="TravelReturnDate" />
+		    <instance name="FlightReturnDate" />
+		    <concept name="ArrivalDate">
+		        <instance name="TravelArrivalDate" />
+				<instance name="FlightArrivalDate" />
+		    </concept>
+		    <concept name="DepartureDate">
+		        <instance name="TravelDepartureDate" />
+				<instance name="BusDepartureDate" />
+				<instance name="FlightDepartureDate" />
+			</concept>
+		</concept>
+	</concept>
+</taxonomy>
+
