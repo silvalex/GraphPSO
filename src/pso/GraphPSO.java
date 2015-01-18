@@ -2,10 +2,8 @@ package pso;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,14 +30,14 @@ import org.xml.sax.SAXException;
 public class GraphPSO {
 	// PSO settings
 	private List<Particle> swarm = new ArrayList<Particle>();
-	public static final int MAX_NUM_ITERATIONS = 30;
+	public static final int MAX_NUM_ITERATIONS = 5;
 	public static final int NUM_PARTICLES = 200;
 	public static final float C1 = 1;
 	public static final float C2 = 1;
 	public static final float W = 1;
 	public static int numDimensions;
-	public static long[] time = new long[MAX_NUM_ITERATIONS];
-	public static double[] fitness = new double[MAX_NUM_ITERATIONS];
+	public static ArrayList<Long> time = new ArrayList<Long>();
+	public static ArrayList<Double> fitness = new ArrayList<Double>();
 	public static String logName;
 	public static Long initialisationStartTime;
 
@@ -76,6 +74,7 @@ public class GraphPSO {
 	private Random random;
 	private Graph masterGraph;
 
+	private Stopwatch watch = new Stopwatch();
 
 	/**
 	 * Application's entry point.
@@ -92,6 +91,7 @@ public class GraphPSO {
 	 */
 	public GraphPSO(String logName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
 		initialisationStartTime = System.currentTimeMillis();
+		watch.start();
 		this.logName = logName;
 		random = new Random(seed);
 
@@ -279,7 +279,7 @@ public class GraphPSO {
 		Graph workflow;
 		long initialization = System.currentTimeMillis() - initialisationStartTime;
 
-		while (i < MAX_NUM_ITERATIONS) {
+		while (/*i < MAX_NUM_ITERATIONS*/watch.getElapsedTime() < 7405) {
 			long startTime = System.currentTimeMillis();
 			System.out.println("ITERATION " + i);
 
@@ -314,8 +314,8 @@ public class GraphPSO {
 				updatePosition(p);
 			}
 
-			fitness[i] = Particle.globalBestFitness;
-			time[i] = (System.currentTimeMillis() - startTime) + initialization;
+			fitness.add(Particle.globalBestFitness);
+			time.add((System.currentTimeMillis() - startTime) + initialization);
 			initialization = 0;
 			i++;
 		}
@@ -578,8 +578,8 @@ public class GraphPSO {
 	public void writeLog() {
 		try {
 			FileWriter writer = new FileWriter(new File(logName));
-			for (int i = 0; i < MAX_NUM_ITERATIONS; i++) {
-				writer.append(String.format("%d %d %f\n", i, time[i], fitness[i]));
+			for (int i = 0; i < fitness.size(); i++) {
+				writer.append(String.format("%d %d %f\n", i, time.get(i), fitness.get(i)));
 			}
 			writer.close();
 		}
