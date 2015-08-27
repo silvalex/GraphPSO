@@ -1,4 +1,5 @@
 package pso;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -30,8 +31,8 @@ import org.xml.sax.SAXException;
 public class GraphPSO {
 	// PSO settings
 	private List<Particle> swarm = new ArrayList<Particle>();
-	public static final int MAX_NUM_ITERATIONS = 5;
-	public static final int NUM_PARTICLES = 200;
+	public static final int MAX_NUM_ITERATIONS = 50;
+	public static final int NUM_PARTICLES = 30;
 	public static final float C1 = 1;
 	public static final float C2 = 1;
 	public static final float W = 1;
@@ -48,14 +49,23 @@ public class GraphPSO {
 	public static final double W4 = 0.25;
 
 	// Values for normalisation
-	public final double minAvailability = 0.0;
-	public double maxAvailability = -1.0;
-	public final double minReliability = 0.0;
-	public double maxReliability = -1.0;
-	public double minTime = Double.MAX_VALUE;
-	public double maxTime = -1.0;
-	public double minCost = Double.MAX_VALUE;
-	public double maxCost = -1.0;
+//	public final double minAvailability = 0.0;
+//	public double maxAvailability = -1.0;
+//	public final double minReliability = 0.0;
+//	public double maxReliability = -1.0;
+//	public double minTime = Double.MAX_VALUE;
+//	public double maxTime = -1.0;
+//	public double minCost = Double.MAX_VALUE;
+//	public double maxCost = -1.0;
+
+	public static double MINIMUM_COST = Double.MAX_VALUE;
+	public static double MINIMUM_TIME = Double.MAX_VALUE;
+	public static final double MINIMUM_RELIABILITY = 0;
+	public static final double MINIMUM_AVAILABILITY = 0;
+	public static double MAXIMUM_COST = Double.MIN_VALUE;
+	public static double MAXIMUM_TIME = Double.MIN_VALUE;
+	public static double MAXIMUM_RELIABILITY = Double.MIN_VALUE;
+	public static double MAXIMUM_AVAILABILITY = Double.MIN_VALUE;
 
 	// Constants with of order of QoS attributes
 	public static final int TIME = 0;
@@ -74,7 +84,7 @@ public class GraphPSO {
 	private Random random;
 	private Graph masterGraph;
 
-	private Stopwatch watch = new Stopwatch();
+	//private Stopwatch watch = new Stopwatch();
 
 	/**
 	 * Application's entry point.
@@ -91,7 +101,7 @@ public class GraphPSO {
 	 */
 	public GraphPSO(String logName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
 		initialisationStartTime = System.currentTimeMillis();
-		watch.start();
+		//watch.start();
 		this.logName = logName;
 		random = new Random(seed);
 
@@ -120,7 +130,7 @@ public class GraphPSO {
 		}
 		serviceToIndexMapping.put(endNode.getName(), i++);
 
-		calculateNormalisationBounds(relevant);
+		//calculateNormalisationBounds(relevant);
 		masterGraph = createMasterGraph(relevant);
 
 		runPSO();
@@ -279,7 +289,7 @@ public class GraphPSO {
 		Graph workflow;
 		long initialization = System.currentTimeMillis() - initialisationStartTime;
 
-		while (/*i < MAX_NUM_ITERATIONS*/watch.getElapsedTime() < 7405) {
+		while (i < MAX_NUM_ITERATIONS) {
 			long startTime = System.currentTimeMillis();
 			System.out.println("ITERATION " + i);
 
@@ -391,8 +401,8 @@ public class GraphPSO {
 		// Calculate longest time
 		t = findLongestPath(workflow);
 
-		a = normaliseAvailability(a);
-		r = normaliseReliability(r);
+		a = 1.0 - normaliseAvailability(a);
+		r = 1.0 - normaliseReliability(r);
 		t = normaliseTime(t);
 		c = normaliseCost(c);
 
@@ -400,32 +410,64 @@ public class GraphPSO {
 	}
 
 	private double normaliseAvailability(double availability) {
-		if (maxAvailability - minAvailability == 0.0)
+		if (MAXIMUM_AVAILABILITY - MINIMUM_AVAILABILITY == 0.0)
 			return 1.0;
 		else
-			return (availability - minAvailability)/(maxAvailability - minAvailability);
+			return (availability - MINIMUM_AVAILABILITY)/(MAXIMUM_AVAILABILITY - MINIMUM_AVAILABILITY);
 	}
 
 	private double normaliseReliability(double reliability) {
-		if (maxReliability - minReliability == 0.0)
+		if (MAXIMUM_RELIABILITY - MINIMUM_RELIABILITY == 0.0)
 			return 1.0;
 		else
-			return (reliability - minReliability)/(maxReliability - minReliability);
+			return (reliability - MINIMUM_RELIABILITY)/(MAXIMUM_RELIABILITY - MINIMUM_RELIABILITY);
 	}
 
 	private double normaliseTime(double time) {
-		if (maxTime - minTime == 0.0)
-			return 1.0;
+		//double numEnds = init.endNodes.size();
+
+		if ((MAXIMUM_TIME * serviceMap.size()) - MINIMUM_TIME == 0.0)
+			return 0.0;
 		else
-			return (maxTime - time)/(maxTime - minTime);
+			return (time - MINIMUM_TIME)/((MAXIMUM_TIME * serviceMap.size()) - MINIMUM_TIME);
 	}
 
 	private double normaliseCost(double cost) {
-		if (maxCost - minCost == 0.0)
-			return 1.0;
+		//double numEnds = init.endNodes.size();
+
+		if ((MAXIMUM_COST * serviceMap.size()) - MINIMUM_COST == 0.0)
+			return 0.0;
 		else
-			return (maxCost - cost)/(maxCost - minCost);
+			return (cost - MINIMUM_COST)/((MAXIMUM_COST * serviceMap.size()) - MINIMUM_COST);
 	}
+
+//	private double normaliseAvailability(double availability) {
+//		if (maxAvailability - minAvailability == 0.0)
+//			return 1.0;
+//		else
+//			return (availability - minAvailability)/(maxAvailability - minAvailability);
+//	}
+//
+//	private double normaliseReliability(double reliability) {
+//		if (maxReliability - minReliability == 0.0)
+//			return 1.0;
+//		else
+//			return (reliability - minReliability)/(maxReliability - minReliability);
+//	}
+//
+//	private double normaliseTime(double time) {
+//		if (maxTime - minTime == 0.0)
+//			return 1.0;
+//		else
+//			return (maxTime - time)/(maxTime - minTime);
+//	}
+//
+//	private double normaliseCost(double cost) {
+//		if (maxCost - minCost == 0.0)
+//			return 1.0;
+//		else
+//			return (maxCost - cost)/(maxCost - minCost);
+//	}
 
 	/**
 	 * Uses the Bellman-Ford algorithm with negative weights to find the longest
@@ -493,9 +535,30 @@ public class GraphPSO {
 
         		String name = eElement.getAttribute("name");
 				qos[TIME] = Double.valueOf(eElement.getAttribute("Res"));
+				if (qos[TIME] > MAXIMUM_TIME)
+					MAXIMUM_TIME = qos[TIME];
+				if (qos[TIME] < MINIMUM_TIME)
+					MINIMUM_TIME = qos[TIME];
 				qos[COST] = Double.valueOf(eElement.getAttribute("Pri"));
+				if (qos[COST] > MAXIMUM_COST)
+					MAXIMUM_COST = qos[COST];
+				if (qos[COST] < MINIMUM_COST)
+					MINIMUM_COST = qos[COST];
 				qos[AVAILABILITY] = Double.valueOf(eElement.getAttribute("Ava"));
+				if (qos[AVAILABILITY] > MAXIMUM_AVAILABILITY)
+					MAXIMUM_AVAILABILITY = qos[AVAILABILITY];
+//				if (qos[AVAILABILITY] < MINIMUM_AVAILABILITY)
+//					MINIMUM_AVAILABILITY = qos[AVAILABILITY];
 				qos[RELIABILITY] = Double.valueOf(eElement.getAttribute("Rel"));
+				if (qos[RELIABILITY] > MAXIMUM_RELIABILITY)
+					MAXIMUM_RELIABILITY = qos[RELIABILITY];
+//				if (qos[RELIABILITY] < MINIMUM_RELIABILITY)
+//					MINIMUM_RELIABILITY = qos[RELIABILITY];
+
+				//qos[TIME] = Double.valueOf(eElement.getAttribute("Res")); XXX
+				//qos[COST] = Double.valueOf(eElement.getAttribute("Pri"));
+				//qos[AVAILABILITY] = Double.valueOf(eElement.getAttribute("Ava"));
+				//qos[RELIABILITY] = Double.valueOf(eElement.getAttribute("Rel"));
 
 				// Get inputs
 				org.w3c.dom.Node inputNode = eElement.getElementsByTagName("inputs").item(0);
@@ -507,13 +570,31 @@ public class GraphPSO {
 				}
 
 				// Get outputs
-				org.w3c.dom.Node outputNode = eElement.getElementsByTagName("outputs").item(0);
-				NodeList outputNodes = ((Element)outputNode).getElementsByTagName("instance");
-				for (int j = 0; j < outputNodes.getLength(); j++) {
-					org.w3c.dom.Node out = outputNodes.item(j);
+				org.w3c.dom.Node outputNode = eElement.getElementsByTagName("outputs-possibilities").item(0);
+				NodeList possList = ((Element)outputNode).getElementsByTagName("outputs");
+				//for (int j = 0; j < possList.getLength(); j++) { XXX
+				for (int j = 0; j < 1; j++) {
+					org.w3c.dom.Node out = possList.item(j);
 					Element e = (Element) out;
-					outputs.add(e.getAttribute("name"));
+					//probabilities.add(Float.valueOf(e.getAttribute("prob")));
+
+					//List<String> outputs = new ArrayList<String>();
+					NodeList valueList = e.getElementsByTagName("instance");
+					for (int k = 0; k < valueList.getLength(); k++) {
+						org.w3c.dom.Node outVal = valueList.item(k);
+						outputs.add(((Element)outVal).getAttribute("name"));
+					}
+					//outputPossibilities.add(outputs);
 				}
+
+//				// Get outputs XXX
+//				org.w3c.dom.Node outputNode = eElement.getElementsByTagName("outputs").item(0);
+//				NodeList outputNodes = ((Element)outputNode).getElementsByTagName("instance");
+//				for (int j = 0; j < outputNodes.getLength(); j++) {
+//					org.w3c.dom.Node out = outputNodes.item(j);
+//					Element e = (Element) out;
+//					outputs.add(e.getAttribute("name"));
+//				}
 
                 Node ws = new Node(name, qos, inputs, outputs);
                 serviceMap.put(name, ws);
@@ -532,6 +613,7 @@ public class GraphPSO {
             System.out.println("Service file parsing failed...");
 		}
     }
+
 
 	/**
 	 * Parses the WSC task file with the given name, extracting input and
@@ -555,8 +637,14 @@ public class GraphPSO {
 				taskInput.add(e.getAttribute("name"));
 	    	}
 
-	    	org.w3c.dom.Node wanted = doc.getElementsByTagName("wanted").item(0);
-	    	NodeList wantedList = ((Element) wanted).getElementsByTagName("instance");
+	    	org.w3c.dom.Node wanted = doc.getElementsByTagName("options").item(0);
+	    	org.w3c.dom.Node conditionNode = ((Element) wanted).getElementsByTagName("condition").item(0);
+	    	org.w3c.dom.Node ifNode = ((Element) wanted).getElementsByTagName("if").item(0);
+	    	org.w3c.dom.Node elseNode = ((Element) wanted).getElementsByTagName("else").item(0);
+
+	    	//org.w3c.dom.Node wanted = doc.getElementsByTagName("wanted").item(0); XXX
+	    	NodeList wantedList = ((Element) ifNode).getElementsByTagName("instance");
+	    	//NodeList wantedList = ((Element) wanted).getElementsByTagName("instance"); XXX
 	    	taskOutput = new HashSet<String>();
 	    	for (int i = 0; i < wantedList.getLength(); i++) {
 				org.w3c.dom.Node item = wantedList.item(i);
@@ -642,39 +730,39 @@ public class GraphPSO {
 		}
 	}
 
-	private void calculateNormalisationBounds(Set<Node> services) {
-		for(Node service: services) {
-			double[] qos = service.getQos();
-
-			// Availability
-			double availability = qos[AVAILABILITY];
-			if (availability > maxAvailability)
-				maxAvailability = availability;
-
-			// Reliability
-			double reliability = qos[RELIABILITY];
-			if (reliability > maxReliability)
-				maxReliability = reliability;
-
-			// Time
-			double time = qos[TIME];
-			if (time > maxTime)
-				maxTime = time;
-			if (time < minTime)
-				minTime = time;
-
-			// Cost
-			double cost = qos[COST];
-			if (cost > maxCost)
-				maxCost = cost;
-			if (cost < minCost)
-				minCost = cost;
-		}
-		// Adjust max. cost and max. time based on the number of services in shrunk repository
-		maxCost *= services.size();
-		maxTime *= services.size();
-
-	}
+//	private void calculateNormalisationBounds(Set<Node> services) {
+//		for(Node service: services) {
+//			double[] qos = service.getQos();
+//
+//			// Availability
+//			double availability = qos[AVAILABILITY];
+//			if (availability > maxAvailability)
+//				maxAvailability = availability;
+//
+//			// Reliability
+//			double reliability = qos[RELIABILITY];
+//			if (reliability > maxReliability)
+//				maxReliability = reliability;
+//
+//			// Time
+//			double time = qos[TIME];
+//			if (time > maxTime)
+//				maxTime = time;
+//			if (time < minTime)
+//				minTime = time;
+//
+//			// Cost
+//			double cost = qos[COST];
+//			if (cost > maxCost)
+//				maxCost = cost;
+//			if (cost < minCost)
+//				minCost = cost;
+//		}
+//		// Adjust max. cost and max. time based on the number of services in shrunk repository
+//		maxCost *= services.size();
+//		maxTime *= services.size();
+//
+//	}
 
 	/**
 	 * Populates the taxonomy tree by associating services to the
