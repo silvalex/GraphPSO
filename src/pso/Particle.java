@@ -18,6 +18,7 @@ public class Particle {
 	public float[] dimensions = new float[GraphPSO.numDimensions];
 	public float[] velocity = new float[GraphPSO.numDimensions];
 	public double fitness = 0.0; // The higher, the fitter
+	public String graphString;
 
 	// personal best values
 	public double bestFitness = Double.NEGATIVE_INFINITY;
@@ -26,12 +27,7 @@ public class Particle {
 	// global best values
 	public static double globalBestFitness = Double.NEGATIVE_INFINITY;
 	public static float[] globalBestDimensions = new float[GraphPSO.numDimensions];
-	public static Graph globalBestWorkflow;
-
-	// overall global best values (for all runs)
-	public static double overallGlobalBestFitness = Double.NEGATIVE_INFINITY;
-	public static float[] overallGlobalBestDimensions = new float[GraphPSO.numDimensions];
-	public static Graph overallGlobalBestWorkflow;
+	public static String globalGraphString;
 
 	/**
 	 * Creates a particle with null dimensions.
@@ -53,12 +49,7 @@ public class Particle {
 		// global best values
 		globalBestFitness = Double.NEGATIVE_INFINITY;
 		globalBestDimensions = new float[GraphPSO.numDimensions];
-		globalBestWorkflow = null;
-
-		// overall global best values (for all runs)
-		overallGlobalBestFitness = Double.NEGATIVE_INFINITY;
-		overallGlobalBestDimensions = new float[GraphPSO.numDimensions];
-		overallGlobalBestWorkflow = null;
+		globalGraphString = null;
 	}
 
 	/**
@@ -77,12 +68,7 @@ public class Particle {
 	 * {@inheritDoc}
 	 */
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Particle: ");
-		for (int i = 0; i < GraphPSO.numDimensions; i++) {
-			builder.append(String.format("%f ", dimensions[i]));
-		}
-		return builder.toString();
+		return graphString;
 	}
 
 

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-
 public class Node implements Cloneable {
 	private List<Edge> incomingEdgeList = new ArrayList<Edge>();
 	private List<Edge> outgoingEdgeList = new ArrayList<Edge>();
@@ -13,6 +12,7 @@ public class Node implements Cloneable {
 	private double[] qos;
 	private Set<String> inputs;
 	private Set<String> outputs;
+	private boolean consider = true;
 
 	public Node(String name, double[] qos, Set<String> inputs, Set<String> outputs) {
 		this.name = name;
@@ -45,6 +45,10 @@ public class Node implements Cloneable {
 		return name;
 	}
 
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	public Node clone() {
 		return new Node(name, qos, inputs, outputs);
 	}
@@ -53,9 +57,20 @@ public class Node implements Cloneable {
 		return taxonomyOutputs;
 	}
 
+	public boolean isConsidered() {
+		return consider;
+	}
+
+	public void setConsidered(boolean consider) {
+		this.consider = consider;
+	}
+
 	@Override
 	public String toString(){
-		return name;
+		if (consider)
+			return name;
+		else
+			return name + "*";
 	}
 
 	@Override

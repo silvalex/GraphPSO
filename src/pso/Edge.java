@@ -6,6 +6,7 @@ public class Edge {
 	private Node fromNode;
 	private Node toNode;
 	private Set<String> intersect;
+	private boolean consider = true;
 
 	public Edge(Set<String> intersect) {
 		this.intersect = intersect;
@@ -31,10 +32,20 @@ public class Edge {
 		return intersect;
 	}
 
+	public boolean isConsidered() {
+		return consider;
+	}
+
+	public void setConsidered(boolean consider) {
+		this.consider = consider;
+	}
 
 	@Override
 	public String toString() {
-		return String.format("%s --> %s", fromNode, toNode);
+		if (consider)
+			return String.format("%s -> %s", fromNode, toNode);
+		else
+			return String.format("%s **> %s", fromNode, toNode);
 	}
 
 	@Override

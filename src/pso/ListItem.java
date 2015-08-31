@@ -2,10 +2,10 @@ package pso;
 
 public class ListItem implements Comparable<ListItem> {
 	public double score;
-	public Node node;
+	public String serviceName;
 
-	public ListItem(Node node, double score) {
-		this.node = node;
+	public ListItem(String serviceName, double score) {
+		this.serviceName = serviceName;
 		this.score = score;
 	}
 
@@ -21,6 +21,6 @@ public class ListItem implements Comparable<ListItem> {
 
 	@Override
 	public String toString() {
-		return "(" + score + ", " + node + ")";
+		return "(" + score + ", " + serviceName + ")";
 	}
 }
