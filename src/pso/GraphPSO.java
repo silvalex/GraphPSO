@@ -39,6 +39,7 @@ public class GraphPSO {
 	public static ArrayList<Long> time = new ArrayList<Long>();
 	public static ArrayList<Double> fitness = new ArrayList<Double>();
 	public static String logName;
+	public static String histogramLogName;
 	public static Long initialisationStartTime;
 
 	// Fitness function weights
@@ -71,6 +72,10 @@ public class GraphPSO {
 	public Node startNode;
 	public Node endNode;
 	private Random random;
+	
+	// Statistics tracking
+	Map<String, Integer> nodeCount = new HashMap<String, Integer>();
+	Map<String, Integer> edgeCount = new HashMap<String, Integer>();
 
 	/**
 	 * Application's entry point.
@@ -78,16 +83,17 @@ public class GraphPSO {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		new GraphPSO(args[0], args[1], args[2], args[3], Long.valueOf(args[4]));
+		new GraphPSO(args[0], args[1], args[2], args[3], args[4], Long.valueOf(args[5]));
 	}
 
 	/**
 	 * Creates a functionally correct workflow, and runs the PSO to discover the
 	 * optimal services to be used in it.
 	 */
-	public GraphPSO(String logName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
+	public GraphPSO(String logName, String histogramLogName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
 		initialisationStartTime = System.currentTimeMillis();
 		this.logName = logName;
+		this.histogramLogName = histogramLogName;
 		random = new Random(seed);
 
 		parseWSCServiceFile(serviceFileName);
@@ -113,7 +119,7 @@ public class GraphPSO {
 		calculateNormalisationBounds(relevant);
 
 		String finalGraph = runPSO();
-		writeLog(finalGraph);
+		writeLogs(finalGraph);
 	}
 
 	//==========================================================================================================
@@ -131,7 +137,7 @@ public class GraphPSO {
 
 		int i = 0;
 		Particle p;
-		Graph workflow;
+		Graph workflow = null;
 		long initialization = System.currentTimeMillis() - initialisationStartTime;
 
 		while (i < MAX_NUM_ITERATIONS) {
@@ -166,9 +172,10 @@ public class GraphPSO {
 			initialization = 0;
 			i++;
 		}
+		
 		return Particle.globalGraphString;
 	}
-
+	
 	/**
 	 * Updates the velocity vector of a particle.
 	 *
@@ -631,8 +638,23 @@ public class GraphPSO {
 
 		finishConstructingGraph(currentEndInputs, end, candidateList, connections, newGraph, seenNodes, relevant);
 
+        // Keep track of nodes and edges for statistics
+        for (String nodeName : newGraph.nodeMap.keySet())
+            addToCountMap(nodeCount, nodeName);
+        for (Edge edge : newGraph.edgeList)
+            addToCountMap(edgeCount, edge.toString());
 		return newGraph;
 	}
+	
+   private void addToCountMap(Map<String,Integer> map, String item) {
+        if (map.containsKey( item )) {
+            map.put( item, map.get( item ) + 1 );
+        }
+        else {
+            map.put( item, 1 );
+        }
+    }
+
 
 	private void populateCandidateList(Map<String, Integer> serviceToIndexMap, Set<Node> relevant, List<ListItem> candidateList, float[] weights) {
 		// Go through all relevant nodes
@@ -908,7 +930,7 @@ public class GraphPSO {
     //
 	//==========================================================================================================
 
-	public void writeLog(String finalGraph) {
+	public void writeLogs(String finalGraph) {
 		try {
 			FileWriter writer = new FileWriter(new File(logName));
 			for (int i = 0; i < fitness.size(); i++) {
@@ -916,6 +938,31 @@ public class GraphPSO {
 			}
 			writer.append(finalGraph);
 			writer.close();
+			
+			FileWriter histogramWriter = new FileWriter(new File(histogramLogName));
+			
+			// Write node histogram
+			List<String> keyList = new ArrayList<String>(nodeCount.keySet());
+			Collections.sort( keyList );
+			
+			for (String key : keyList)
+			    histogramWriter.append( key + " " );
+			histogramWriter.append( "\n" );
+			for (String key : keyList)
+			    histogramWriter.append( String.format("%d ", nodeCount.get( key )) );
+			histogramWriter.append( "\n" );
+			
+			// Write edge histogram
+	        List<String> edgeList = new ArrayList<String>(edgeCount.keySet());
+	        Collections.sort( edgeList );
+	            
+            for (String key : edgeList)
+                histogramWriter.append( key + " " );
+            histogramWriter.append( "\n" );
+            for (String key : edgeList)
+                histogramWriter.append( String.format("%d ", edgeCount.get( key )) );
+            histogramWriter.append( "\n" );
+            histogramWriter.close();
 		}
 		catch (IOException e) {
 			e.printStackTrace();

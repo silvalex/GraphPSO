@@ -43,7 +43,7 @@ public class Edge {
 	@Override
 	public String toString() {
 		if (consider)
-			return String.format("%s -> %s", fromNode, toNode);
+			return String.format("%s->%s", fromNode, toNode);
 		else
 			return String.format("%s **> %s", fromNode, toNode);
 	}
