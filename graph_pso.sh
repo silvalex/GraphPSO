@@ -59,8 +59,8 @@ echo "Running: "
 seed=$SGE_TASK_ID
 result=$FILE_RESULT_PREFIX$seed.stat
 
-java -classpath ./bin:. pso.GraphPSO $result problem.xml services-output.xml taxonomy.xml $seed
-#java -classpath ./bin:. pso.GraphPSO $result problem-prob-nocond.xml services-prob.xml taxonomy.xml $seed
+java -classpath ./bin:. pso.SinglePassGraphPSO $result problem.xml services-output.xml taxonomy.xml $seed
+#java -classpath ./bin:. pso.GraphPSO $result problem.xml services-output.xml taxonomy.xml $seed
 
 cp $result ./results
 
