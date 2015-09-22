@@ -29,7 +29,7 @@ import org.xml.sax.SAXException;
 
 public class GraphPSO {
 	// PSO settings
-	private List<Particle> swarm = new ArrayList<Particle>();
+	public List<Particle> swarm = new ArrayList<Particle>();
 	public static final int MAX_NUM_ITERATIONS = 100;
 	public static final int NUM_PARTICLES = 30;
 	public static final float C1 = 1.49618f;
@@ -131,7 +131,7 @@ public class GraphPSO {
 	/**
 	 * Conducts the particle swarm optimization.
 	 */
-	private String runPSO() {
+	public String runPSO() {
 		// 1. Initialize the swarm
 		initializeRandomSwarm();
 
@@ -181,7 +181,7 @@ public class GraphPSO {
 	 *
 	 * @param p
 	 */
-	private void updateVelocity(Particle p) {
+	public void updateVelocity(Particle p) {
 		float[] vel = p.velocity;
 		float[] dim = p.dimensions;
 		float[] bestDim = p.bestDimensions;
@@ -197,7 +197,7 @@ public class GraphPSO {
 	/**
 	 * Initialises the swarm with random positions and velocities.
 	 */
-	private void initializeRandomSwarm() {
+	public void initializeRandomSwarm() {
 		swarm.clear();
 		for (int i = 0; i < NUM_PARTICLES; i++) {
 			swarm.add(new Particle(random));
@@ -209,7 +209,7 @@ public class GraphPSO {
 	 *
 	 * @param p
 	 */
-	private void updatePosition(Particle p) {
+	public void updatePosition(Particle p) {
 		float newValue;
 		for (int i = 0; i < numDimensions; i++) {
 			// Calculate new position for that dimension
@@ -646,7 +646,7 @@ public class GraphPSO {
 		return newGraph;
 	}
 	
-   private void addToCountMap(Map<String,Integer> map, String item) {
+   public void addToCountMap(Map<String,Integer> map, String item) {
         if (map.containsKey( item )) {
             map.put( item, map.get( item ) + 1 );
         }
@@ -656,7 +656,7 @@ public class GraphPSO {
     }
 
 
-	private void populateCandidateList(Map<String, Integer> serviceToIndexMap, Set<Node> relevant, List<ListItem> candidateList, float[] weights) {
+	public void populateCandidateList(Map<String, Integer> serviceToIndexMap, Set<Node> relevant, List<ListItem> candidateList, float[] weights) {
 		// Go through all relevant nodes
 		for (Node n : relevant) {
 			// Find the index for that node
@@ -668,7 +668,7 @@ public class GraphPSO {
 		}
 	}
 
-	private void finishConstructingGraph(Set<String> currentEndInputs, Node end, List<ListItem> candidateList, Map<String,Edge> connections,
+	public void finishConstructingGraph(Set<String> currentEndInputs, Node end, List<ListItem> candidateList, Map<String,Edge> connections,
 	        Graph newGraph, Set<Node> seenNodes, Set<Node> relevant) {
 
 	 // While end cannot be connected to graph
@@ -705,7 +705,7 @@ public class GraphPSO {
         removeDanglingNodes(newGraph);
 	}
 
-	private boolean checkCandidateNodeSatisfied(Map<String, Edge> connections, Graph newGraph,
+	public boolean checkCandidateNodeSatisfied(Map<String, Edge> connections, Graph newGraph,
 			Node candidate, Set<String> candInputs, Set<Node> fromNodes) {
 
 		Set<String> candidateInputs = new HashSet<String>(candInputs);
