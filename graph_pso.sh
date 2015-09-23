@@ -28,6 +28,7 @@ DIR_OUTPUT=$DIR_GRID$2 # Match this argument with dataset name
 
 FILE_JOB_LIST="CURRENT_JOBS.txt"
 FILE_RESULT_PREFIX="out"
+HIST_RESULT_PREFIX="hist"
 
    
 mkdir -p $DIR_TMP
@@ -58,9 +59,10 @@ echo "Running: "
 
 seed=$SGE_TASK_ID
 result=$FILE_RESULT_PREFIX$seed.stat
+hist_result$HIST_RESULT_PREFIX$seed.stat
 
-java -classpath ./bin:. pso.SinglePassGraphPSO $result problem.xml services-output.xml taxonomy.xml $seed
-#java -classpath ./bin:. pso.GraphPSO $result problem.xml services-output.xml taxonomy.xml $seed
+java -classpath ./bin:. pso.SinglePassGraphPSO $result $hist_result problem.xml services-output.xml taxonomy.xml $seed
+#java -classpath ./bin:. pso.GraphPSO $result $hist_result problem.xml services-output.xml taxonomy.xml $seed
 
 cp $result ./results
 
