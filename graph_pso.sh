@@ -16,8 +16,8 @@
 #
 
 # For testing locally
-#JOB_ID=3
-#SGE_TASK_ID=1
+JOB_ID=3
+SGE_TASK_ID=1
 
 DIR_TMP="/local/tmp/sawczualex/$JOB_ID/"
 DIR_HOME="/u/students/sawczualex/"
@@ -59,12 +59,13 @@ echo "Running: "
 
 seed=$SGE_TASK_ID
 result=$FILE_RESULT_PREFIX$seed.stat
-hist_result$HIST_RESULT_PREFIX$seed.stat
+hist_result=$HIST_RESULT_PREFIX$seed.stat
 
 java -classpath ./bin:. pso.SinglePassGraphPSO $result $hist_result problem.xml services-output.xml taxonomy.xml $seed
 #java -classpath ./bin:. pso.GraphPSO $result $hist_result problem.xml services-output.xml taxonomy.xml $seed
 
 cp $result ./results
+cp $hist_result ./results
 
 # Now we move the output to a place to pick it up from later and clean up
 cd results
