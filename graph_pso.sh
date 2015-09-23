@@ -16,8 +16,8 @@
 #
 
 # For testing locally
-JOB_ID=3
-SGE_TASK_ID=1
+#JOB_ID=3
+#SGE_TASK_ID=1
 
 DIR_TMP="/local/tmp/sawczualex/$JOB_ID/"
 DIR_HOME="/u/students/sawczualex/"
