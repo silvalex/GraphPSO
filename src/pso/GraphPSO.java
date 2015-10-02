@@ -72,7 +72,7 @@ public class GraphPSO {
 	public Node startNode;
 	public Node endNode;
 	private Random random;
-	
+
 	// Statistics tracking
 	Map<String, Integer> nodeCount = new HashMap<String, Integer>();
 	Map<String, Integer> edgeCount = new HashMap<String, Integer>();
@@ -172,10 +172,10 @@ public class GraphPSO {
 			initialization = 0;
 			i++;
 		}
-		
+
 		return Particle.globalGraphString;
 	}
-	
+
 	/**
 	 * Updates the velocity vector of a particle.
 	 *
@@ -549,28 +549,28 @@ public class GraphPSO {
         return new FitnessResult(fitness, graphString);
 	}
 
-	private double normaliseAvailability(double availability) {
+	public double normaliseAvailability(double availability) {
 		if (MAXIMUM_AVAILABILITY - MINIMUM_AVAILABILITY == 0.0)
 			return 1.0;
 		else
 			return (availability - MINIMUM_AVAILABILITY)/(MAXIMUM_AVAILABILITY - MINIMUM_AVAILABILITY);
 	}
 
-	private double normaliseReliability(double reliability) {
+	public double normaliseReliability(double reliability) {
 		if (MAXIMUM_RELIABILITY - MINIMUM_RELIABILITY == 0.0)
 			return 1.0;
 		else
 			return (reliability - MINIMUM_RELIABILITY)/(MAXIMUM_RELIABILITY - MINIMUM_RELIABILITY);
 	}
 
-	private double normaliseTime(double time) {
+	public double normaliseTime(double time) {
 		if (MAXIMUM_TIME - MINIMUM_TIME == 0.0)
 			return 1.0;
 		else
 			return (MAXIMUM_TIME - time)/(MAXIMUM_TIME - MINIMUM_TIME);
 	}
 
-	private double normaliseCost(double cost) {
+	public double normaliseCost(double cost) {
 		if (MAXIMUM_COST - MINIMUM_COST == 0.0)
 			return 1.0;
 		else
@@ -584,7 +584,7 @@ public class GraphPSO {
 	 * @param g
 	 * @return list of edges composing longest path
 	 */
-	private double findLongestPath(Graph g) {
+	public double findLongestPath(Graph g) {
 		Map<String, Double> distance = new HashMap<String, Double>();
 		Map<String, Node> predecessor = new HashMap<String, Node>();
 
@@ -645,7 +645,7 @@ public class GraphPSO {
             addToCountMap(edgeCount, edge.toString());
 		return newGraph;
 	}
-	
+
    public void addToCountMap(Map<String,Integer> map, String item) {
         if (map.containsKey( item )) {
             map.put( item, map.get( item ) + 1 );
@@ -938,24 +938,24 @@ public class GraphPSO {
 			}
 			writer.append(finalGraph);
 			writer.close();
-			
+
 			FileWriter histogramWriter = new FileWriter(new File(histogramLogName));
-			
+
 			// Write node histogram
 			List<String> keyList = new ArrayList<String>(nodeCount.keySet());
 			Collections.sort( keyList );
-			
+
 			for (String key : keyList)
 			    histogramWriter.append( key + " " );
 			histogramWriter.append( "\n" );
 			for (String key : keyList)
 			    histogramWriter.append( String.format("%d ", nodeCount.get( key )) );
 			histogramWriter.append( "\n" );
-			
+
 			// Write edge histogram
 	        List<String> edgeList = new ArrayList<String>(edgeCount.keySet());
 	        Collections.sort( edgeList );
-	            
+
             for (String key : edgeList)
                 histogramWriter.append( key + " " );
             histogramWriter.append( "\n" );

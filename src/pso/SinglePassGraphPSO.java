@@ -35,60 +35,60 @@ public class SinglePassGraphPSO extends GraphPSO {
     //
 	//==========================================================================================================
 
-	/**
-	 * Conducts the particle swarm optimization.
-	 */
-	@Override
-	public String runPSO() {
-		// 1. Initialize the swarm
-		initializeRandomSwarm();
-
-		int i = 0;
-		Particle p;
-		Graph workflow = null;
-		long initialization = System.currentTimeMillis() - initialisationStartTime;
-
-		while (i < MAX_NUM_ITERATIONS) {
-			long startTime = System.currentTimeMillis();
-			System.out.println("ITERATION " + i);
-
-			// Go through all particles
-			for (int j = 0; j < NUM_PARTICLES; j++) {
-				System.out.println("\tPARTICLE " + j);
-				p = swarm.get(j);
-				workflow = createNewGraph(startNode.clone(), endNode.clone(), relevant, p.dimensions);
-				// 2. Evaluate fitness of particle
-				if (workflow != null) {
-				    FitnessResult result = calculateFitness(workflow);
-				    p.fitness = result.fitness;
-				    p.graphString = result.graphString;
-				}
-				else {
-				    p.fitness = 0;
-				    p.graphString = "Partially-built graph";
-				}
-				// 3. If fitness of particle is better than Pbest, update the Pbest
-				p.updatePersonalBest();
-				// 4. If fitness of Pbest is better than Gbest, update the Gbest
-				if (p.bestFitness > Particle.globalBestFitness) {
-					Particle.globalBestFitness = p.bestFitness;
-					Particle.globalGraphString = p.graphString;
-					Particle.globalBestDimensions = Arrays.copyOf(p.bestDimensions, p.bestDimensions.length);
-				}
-				// 5. Update the velocity of particle
-				updateVelocity(p);
-				// 6. Update the position of particle
-				updatePosition(p);
-			}
-
-			fitness.add(Particle.globalBestFitness);
-			time.add((System.currentTimeMillis() - startTime) + initialization);
-			initialization = 0;
-			i++;
-		}
-		
-		return Particle.globalGraphString;
-	}
+//	/**
+//	 * Conducts the particle swarm optimization.
+//	 */
+//	@Override
+//	public String runPSO() {
+//		// 1. Initialize the swarm
+//		initializeRandomSwarm();
+//
+//		int i = 0;
+//		Particle p;
+//		Graph workflow = null;
+//		long initialization = System.currentTimeMillis() - initialisationStartTime;
+//
+//		while (i < MAX_NUM_ITERATIONS) {
+//			long startTime = System.currentTimeMillis();
+//			System.out.println("ITERATION " + i);
+//
+//			// Go through all particles
+//			for (int j = 0; j < NUM_PARTICLES; j++) {
+//				System.out.println("\tPARTICLE " + j);
+//				p = swarm.get(j);
+//				workflow = createNewGraph(startNode.clone(), endNode.clone(), relevant, p.dimensions);
+//				// 2. Evaluate fitness of particle
+//				if (workflow != null) {
+//				    FitnessResult result = calculateFitness(workflow);
+//				    p.fitness = result.fitness;
+//				    p.graphString = result.graphString;
+//				}
+//				else {
+//				    p.fitness = 0;
+//				    p.graphString = "Partially-built graph";
+//				}
+//				// 3. If fitness of particle is better than Pbest, update the Pbest
+//				p.updatePersonalBest();
+//				// 4. If fitness of Pbest is better than Gbest, update the Gbest
+//				if (p.bestFitness > Particle.globalBestFitness) {
+//					Particle.globalBestFitness = p.bestFitness;
+//					Particle.globalGraphString = p.graphString;
+//					Particle.globalBestDimensions = Arrays.copyOf(p.bestDimensions, p.bestDimensions.length);
+//				}
+//				// 5. Update the velocity of particle
+//				updateVelocity(p);
+//				// 6. Update the position of particle
+//				updatePosition(p);
+//			}
+//
+//			fitness.add(Particle.globalBestFitness);
+//			time.add((System.currentTimeMillis() - startTime) + initialization);
+//			initialization = 0;
+//			i++;
+//		}
+//
+//		return Particle.globalGraphString;
+//	}
 
 
 	//==========================================================================================================
@@ -121,10 +121,10 @@ public class SinglePassGraphPSO extends GraphPSO {
             addToCountMap(nodeCount, nodeName);
         for (Edge edge : newGraph.edgeList)
             addToCountMap(edgeCount, edge.toString());
-        if (newGraph.nodeMap.containsKey( "end" ))
+//        if (newGraph.nodeMap.containsKey( "end" ))
             return newGraph;
-        else
-            return null;
+//        else
+//            return null;
 	}
 
 	@Override
@@ -155,7 +155,7 @@ public class SinglePassGraphPSO extends GraphPSO {
 
                 break;
             }
-			
+
 			if (index < candidateList.size()) {
 			    candidateList.remove(index);
 			}
@@ -163,10 +163,67 @@ public class SinglePassGraphPSO extends GraphPSO {
 			    break;
 			}
         }
+
 		if (satisfied) {
 		    connectCandidateToGraphByInputs(end, connections, newGraph, currentEndInputs);
 		    connections.clear();
 		    removeDanglingNodes(newGraph);
+		}
+		else {
+			connections.clear();
+			checkCandidateNodeSatisfied(connections, newGraph, end, end.getInputs(), null);
+			newGraph.connectionsToEndNode = connections.size();
+		}
+	}
+
+	@Override
+	public FitnessResult calculateFitness(Graph graph) {
+		if (graph.nodeMap.containsKey("end")) {
+			double a = 1.0;
+			double r = 1.0;
+			double t = 0.0;
+			double c = 0.0;
+
+			for (Node n : graph.nodeMap.values()) {
+				double[] qos = n.getQos();
+				a *= qos[AVAILABILITY];
+				r *= qos[RELIABILITY];
+				c += qos[COST];
+			}
+
+			// Calculate longest time
+			t = findLongestPath(graph);
+
+			a = normaliseAvailability(a);
+			r = normaliseReliability(r);
+			t = normaliseTime(t);
+			c = normaliseCost(c);
+
+			double fitness = 1.0 + (W1 * a + W2 * r + W3 * t + W4 * c);
+			String graphString = graph.toString();
+
+			return new FitnessResult(fitness, graphString);
+		}
+		else {
+			double a = 1.0;
+			double r = 1.0;
+			double c = 0.0;
+
+			for (Node n : graph.nodeMap.values()) {
+				double[] qos = n.getQos();
+				a *= qos[AVAILABILITY];
+				r *= qos[RELIABILITY];
+				c += qos[COST];
+			}
+
+			a = normaliseAvailability(a);
+			r = normaliseReliability(r);
+			c = normaliseCost(c);
+
+			double fitness = (1.0 - (1.0/(graph.connectionsToEndNode + 1))) + (W1 * a + W2 * r + W4 * c); // Time cannot be calculated with an incomplete graph
+			String graphString = graph.toString();
+
+			return new FitnessResult(fitness, graphString);
 		}
 	}
 }

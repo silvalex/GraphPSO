@@ -10,6 +10,7 @@ import pso.Edge;
 public class Graph {
 	public Map<String, Node> nodeMap = new HashMap<String, Node>();
 	public List<Edge> edgeList = new ArrayList<Edge>();
+	public int connectionsToEndNode;
 
 	@Override
 	/**
