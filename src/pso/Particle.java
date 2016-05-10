@@ -1,10 +1,6 @@
 package pso;
 
-
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 /**
@@ -19,6 +15,10 @@ public class Particle {
 	public float[] velocity = new float[GraphPSO.numDimensions];
 	public double fitness = 0.0; // The higher, the fitter
 	public String graphString;
+	public double availability;
+	public double reliability;
+	public double time;
+	public double cost;
 
 	// personal best values
 	public double bestFitness = Double.NEGATIVE_INFINITY;
@@ -28,6 +28,10 @@ public class Particle {
 	public static double globalBestFitness = Double.NEGATIVE_INFINITY;
 	public static float[] globalBestDimensions = new float[GraphPSO.numDimensions];
 	public static String globalGraphString;
+	public static double globalBestAvailability;
+	public static double globalBestReliability;
+	public static double globalBestTime;
+	public static double globalBestCost;
 
 	/**
 	 * Creates a particle with null dimensions.

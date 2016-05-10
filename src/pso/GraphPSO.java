@@ -26,8 +26,8 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
 
-
 public class GraphPSO {
+
 	// PSO settings
 	private List<Particle> swarm = new ArrayList<Particle>();
 	public static final int MAX_NUM_ITERATIONS = 100;
@@ -35,9 +35,13 @@ public class GraphPSO {
 	public static final float C1 = 1.49618f;
 	public static final float C2 = 1.49618f;
 	public static final float W = 0.7298f;
+	public static final boolean dynamicNormalisation = true;
 	public static int numDimensions;
+	public static ArrayList<Long> initTime = new ArrayList<Long>();
 	public static ArrayList<Long> time = new ArrayList<Long>();
-	public static ArrayList<Double> fitness = new ArrayList<Double>();
+	public static ArrayList<Double> meanFitness = new ArrayList<Double>();
+	public static ArrayList<Double> bestFitnessThisGen = new ArrayList<Double>();
+	public static ArrayList<Double> bestFitnessSoFar = new ArrayList<Double>();
 	public static String logName;
 	public static String histogramLogName;
 	public static Long initialisationStartTime;
@@ -50,12 +54,25 @@ public class GraphPSO {
 
 	public static double MINIMUM_COST = Double.MAX_VALUE;
 	public static double MINIMUM_TIME = Double.MAX_VALUE;
-	public static final double MINIMUM_RELIABILITY = 0;
-	public static final double MINIMUM_AVAILABILITY = 0;
+	public static double MINIMUM_RELIABILITY = 0;
+	public static double MINIMUM_AVAILABILITY = 0;
 	public static double MAXIMUM_COST = Double.MIN_VALUE;
 	public static double MAXIMUM_TIME = Double.MIN_VALUE;
 	public static double MAXIMUM_RELIABILITY = Double.MIN_VALUE;
 	public static double MAXIMUM_AVAILABILITY = Double.MIN_VALUE;
+
+	public static List<Double> meanAvailPerGen = new ArrayList<Double>();
+	public static List<Double> meanReliaPerGen = new ArrayList<Double>();
+	public static List<Double> meanTimePerGen = new ArrayList<Double>();
+	public static List<Double> meanCostPerGen = new ArrayList<Double>();
+	public static List<Double> bestAvailThisGen = new ArrayList<Double>();
+	public static List<Double> bestReliaThisGen = new ArrayList<Double>();
+	public static List<Double> bestTimeThisGen = new ArrayList<Double>();
+	public static List<Double> bestCostThisGen = new ArrayList<Double>();
+	public static List<Double> bestAvailSoFar = new ArrayList<Double>();
+	public static List<Double> bestReliaSoFar = new ArrayList<Double>();
+	public static List<Double> bestTimeSoFar = new ArrayList<Double>();
+	public static List<Double> bestCostSoFar = new ArrayList<Double>();
 
 	// Constants with of order of QoS attributes
 	public static final int TIME = 0;
@@ -72,7 +89,7 @@ public class GraphPSO {
 	public Node startNode;
 	public Node endNode;
 	private Random random;
-	
+
 	// Statistics tracking
 	Map<String, Integer> nodeCount = new HashMap<String, Integer>();
 	Map<String, Integer> edgeCount = new HashMap<String, Integer>();
@@ -90,10 +107,11 @@ public class GraphPSO {
 	 * Creates a functionally correct workflow, and runs the PSO to discover the
 	 * optimal services to be used in it.
 	 */
-	public GraphPSO(String logName, String histogramLogName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
+	public GraphPSO(String lName, String hlName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
 		initialisationStartTime = System.currentTimeMillis();
-		this.logName = logName;
-		this.histogramLogName = histogramLogName;
+
+		logName = lName;
+		histogramLogName = hlName;
 		random = new Random(seed);
 
 		parseWSCServiceFile(serviceFileName);
@@ -112,11 +130,13 @@ public class GraphPSO {
 		endNode = new Node("end", mockQos, taskOutput ,new HashSet<String>());
 
 		populateTaxonomyTree();
-		relevant = getRelevantServices(serviceMap, taskInput, taskOutput);
+		// relevant = getRelevantServices(serviceMap, taskInput, taskOutput); XXX
+		relevant = new HashSet<Node>(serviceMap.values());
 		numDimensions = relevant.size();
 
 		mapServicesToIndices(relevant,serviceToIndexMap);
-		calculateNormalisationBounds(relevant);
+		if (!dynamicNormalisation)
+			calculateNormalisationBounds(relevant);
 
 		String finalGraph = runPSO();
 		writeLogs(finalGraph);
@@ -144,38 +164,160 @@ public class GraphPSO {
 			long startTime = System.currentTimeMillis();
 			System.out.println("ITERATION " + i);
 
+			double minAvailability = 2.0;
+			double maxAvailability = -1.0;
+			double minReliability = 2.0;
+			double maxReliability = -1.0;
+			double minTime = Double.MAX_VALUE;
+			double maxTime = -1.0;
+			double minCost = Double.MAX_VALUE;
+			double maxCost = -1.0;
+
+			// Keep track of means
+			double meanAvailability = 0.0;
+			double meanReliability = 0.0;
+			double meanTime = 0.0;
+			double meanCost = 0.0;
+			double meanFit = 0.0;
+			double bestFitThisGen = 0.0;
+			double bestAThisGen = 0.0;
+			double bestRThisGen = 0.0;
+			double bestTThisGen = Double.MAX_VALUE;
+			double bestCThisGen = Double.MAX_VALUE;
+
 			// Go through all particles
 			for (int j = 0; j < NUM_PARTICLES; j++) {
 				System.out.println("\tPARTICLE " + j);
 				p = swarm.get(j);
 				workflow = createNewGraph(startNode.clone(), endNode.clone(), relevant, p.dimensions);
+
 				// 2. Evaluate fitness of particle
-				FitnessResult result = calculateFitness(workflow);
-				p.fitness = result.fitness;
-				p.graphString = result.graphString;
-				// 3. If fitness of particle is better than Pbest, update the Pbest
-				p.updatePersonalBest();
-				// 4. If fitness of Pbest is better than Gbest, update the Gbest
-				if (p.bestFitness > Particle.globalBestFitness) {
-					Particle.globalBestFitness = p.bestFitness;
-					Particle.globalGraphString = p.graphString;
-					Particle.globalBestDimensions = Arrays.copyOf(p.bestDimensions, p.bestDimensions.length);
+				calculateOverallQoS(workflow, p);
+
+				meanAvailability += p.availability;
+				meanReliability += p.reliability;
+				meanTime += p.time;
+				meanCost += p.cost;
+
+				if (dynamicNormalisation) {
+					if (p.availability < minAvailability)
+						minAvailability = p.availability;
+					if (p.availability > maxAvailability)
+						maxAvailability = p.availability;
+					if (p.reliability < minReliability)
+						minReliability = p.reliability;
+					if (p.reliability > maxReliability)
+						maxReliability = p.reliability;
+					if (p.time < minTime)
+						minTime = p.time;
+					if (p.time > maxTime)
+						maxTime = p.time;
+					if (p.cost < minCost)
+						minCost = p.cost;
+					if (p.cost > maxCost)
+						maxCost = p.cost;
 				}
-				// 5. Update the velocity of particle
-				updateVelocity(p);
-				// 6. Update the position of particle
-				updatePosition(p);
+
+				if (!dynamicNormalisation) {
+					double fit = calculateFitness(p);
+					meanFit += fit;
+					if (fit > bestFitThisGen) {
+						bestFitThisGen = fit;
+						bestAThisGen = p.availability;
+						bestRThisGen = p.reliability;
+						bestTThisGen = p.time;
+						bestCThisGen = p.cost;
+					}
+					// 3. If fitness of particle is better than Pbest, update the Pbest
+					p.updatePersonalBest();
+					// 4. If fitness of Pbest is better than Gbest, update the Gbest
+					if (p.bestFitness > Particle.globalBestFitness) {
+						Particle.globalBestFitness = p.bestFitness;
+						Particle.globalGraphString = p.graphString;
+						Particle.globalBestDimensions = Arrays.copyOf(p.bestDimensions, p.bestDimensions.length);
+						Particle.globalBestAvailability = p.availability;
+						Particle.globalBestReliability = p.reliability;
+						Particle.globalBestTime = p.time;
+						Particle.globalBestCost = p.cost;
+					}
+					// 5. Update the velocity of particle
+					updateVelocity(p);
+					// 6. Update the position of particle
+					updatePosition(p);
+				}
 			}
 
-			fitness.add(Particle.globalBestFitness);
-			time.add((System.currentTimeMillis() - startTime) + initialization);
+			// Mean QoS
+			meanAvailPerGen.add(meanAvailability / NUM_PARTICLES);
+			meanReliaPerGen.add(meanReliability / NUM_PARTICLES);
+			meanTimePerGen.add(meanTime / NUM_PARTICLES);
+			meanCostPerGen.add(meanCost / NUM_PARTICLES);
+
+			// If normalisation is dynamic, go through particles again to finish fitness calculations
+			if (dynamicNormalisation) {
+				// Update the normalisation bounds with the newly found values
+				MINIMUM_AVAILABILITY = minAvailability;
+				MAXIMUM_AVAILABILITY = maxAvailability;
+				MINIMUM_RELIABILITY = minReliability;
+				MAXIMUM_RELIABILITY = maxReliability;
+				MINIMUM_COST = minCost;
+				MAXIMUM_COST = maxCost;
+				MINIMUM_TIME = minTime;
+				MAXIMUM_TIME = maxTime;
+
+				Particle p2;
+				// Finish calculating the fitness of each candidate
+				for (int j = 0; j < NUM_PARTICLES; j++) {
+					p2 = swarm.get(j);
+					double fit = calculateFitness(p2);
+					meanFit += fit;
+					if (fit > bestFitThisGen) {
+						bestFitThisGen = fit;
+						bestAThisGen = p2.availability;
+						bestRThisGen = p2.reliability;
+						bestTThisGen = p2.time;
+						bestCThisGen = p2.cost;
+					}
+					// 3. If fitness of particle is better than Pbest, update the Pbest
+					p2.updatePersonalBest();
+					// 4. If fitness of Pbest is better than Gbest, update the Gbest
+					if (p2.bestFitness > Particle.globalBestFitness) {
+						Particle.globalBestFitness = p2.bestFitness;
+						Particle.globalGraphString = p2.graphString;
+						Particle.globalBestDimensions = Arrays.copyOf(p2.bestDimensions, p2.bestDimensions.length);
+						Particle.globalBestAvailability = p2.availability;
+						Particle.globalBestReliability = p2.reliability;
+						Particle.globalBestTime = p2.time;
+						Particle.globalBestCost = p2.cost;
+					}
+					// 5. Update the velocity of particle
+					updateVelocity(p2);
+					// 6. Update the position of particle
+					updatePosition(p2);
+				}
+			}
+
+			meanFitness.add(meanFit/NUM_PARTICLES);
+			bestFitnessThisGen.add(bestFitThisGen);
+			bestAvailThisGen.add(bestAThisGen);
+			bestReliaThisGen.add(bestRThisGen);
+			bestTimeThisGen.add(bestTThisGen);
+			bestCostThisGen.add(bestCThisGen);
+			bestFitnessSoFar.add(Particle.globalBestFitness);
+			bestAvailSoFar.add(Particle.globalBestAvailability);
+			bestReliaSoFar.add(Particle.globalBestReliability);
+			bestTimeSoFar.add(Particle.globalBestTime);
+			bestCostSoFar.add(Particle.globalBestCost);
+
+			initTime.add(initialization);
+			time.add(System.currentTimeMillis() - startTime);
 			initialization = 0;
 			i++;
 		}
-		
+
 		return Particle.globalGraphString;
 	}
-	
+
 	/**
 	 * Updates the velocity vector of a particle.
 	 *
@@ -521,7 +663,7 @@ public class GraphPSO {
     //
 	//==========================================================================================================
 
-	public FitnessResult calculateFitness(Graph graph) {
+	public void calculateOverallQoS(Graph graph, Particle p) {
 
         double a = 1.0;
         double r = 1.0;
@@ -538,15 +680,26 @@ public class GraphPSO {
         // Calculate longest time
         t = findLongestPath(graph);
 
+        p.availability = a;
+        p.reliability = r;
+        p.time = t;
+        p.cost = c;
+        p.graphString = graph.toString();
+	}
+
+	public double calculateFitness(Particle p) {
+		double a = p.availability;
+        double r = p.reliability;
+        double t = p.time;
+        double c = p.cost;
+
         a = normaliseAvailability(a);
         r = normaliseReliability(r);
         t = normaliseTime(t);
         c = normaliseCost(c);
 
-        double fitness = W1 * a + W2 * r + W3 * t + W4 * c;
-        String graphString = graph.toString();
-
-        return new FitnessResult(fitness, graphString);
+        p.fitness = W1 * a + W2 * r + W3 * t + W4 * c;
+        return p.fitness;
 	}
 
 	private double normaliseAvailability(double availability) {
@@ -645,7 +798,7 @@ public class GraphPSO {
             addToCountMap(edgeCount, edge.toString());
 		return newGraph;
 	}
-	
+
    private void addToCountMap(Map<String,Integer> map, String item) {
         if (map.containsKey( item )) {
             map.put( item, map.get( item ) + 1 );
@@ -933,29 +1086,33 @@ public class GraphPSO {
 	public void writeLogs(String finalGraph) {
 		try {
 			FileWriter writer = new FileWriter(new File(logName));
-			for (int i = 0; i < fitness.size(); i++) {
-				writer.append(String.format("%d %d %f\n", i, time.get(i), fitness.get(i)));
+			for (int i = 0; i < bestFitnessSoFar.size(); i++) {
+				writer.append(String.format("%d %d %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",
+						i, initTime.get(i), time.get(i), meanFitness.get(i), bestFitnessThisGen.get(i), bestFitnessSoFar.get(i),
+						meanAvailPerGen.get(i),   meanReliaPerGen.get(i),    meanTimePerGen.get(i),    meanCostPerGen.get(i),
+						bestAvailThisGen.get(i),  bestReliaThisGen.get(i),   bestTimeThisGen.get(i),   bestCostThisGen.get(i),
+						bestAvailSoFar.get(i),    bestReliaSoFar.get(i),     bestTimeSoFar.get(i),     bestCostSoFar.get(i)));
 			}
 			writer.append(finalGraph);
 			writer.close();
-			
+
 			FileWriter histogramWriter = new FileWriter(new File(histogramLogName));
-			
+
 			// Write node histogram
 			List<String> keyList = new ArrayList<String>(nodeCount.keySet());
 			Collections.sort( keyList );
-			
+
 			for (String key : keyList)
 			    histogramWriter.append( key + " " );
 			histogramWriter.append( "\n" );
 			for (String key : keyList)
 			    histogramWriter.append( String.format("%d ", nodeCount.get( key )) );
 			histogramWriter.append( "\n" );
-			
+
 			// Write edge histogram
 	        List<String> edgeList = new ArrayList<String>(edgeCount.keySet());
 	        Collections.sort( edgeList );
-	            
+
             for (String key : edgeList)
                 histogramWriter.append( key + " " );
             histogramWriter.append( "\n" );
