@@ -176,7 +176,6 @@ public class SinglePassGraphPSO extends GraphPSO {
 		}
 	}
 
-	@Override
 	public FitnessResult calculateFitness(Graph graph) {
 		if (graph.nodeMap.containsKey("end")) {
 			double a = 1.0;

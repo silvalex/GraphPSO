@@ -799,11 +799,7 @@ public class GraphPSO {
 		return newGraph;
 	}
 
-<<<<<<< HEAD
    public void addToCountMap(Map<String,Integer> map, String item) {
-=======
-   private void addToCountMap(Map<String,Integer> map, String item) {
->>>>>>> dynamic-normalisation
         if (map.containsKey( item )) {
             map.put( item, map.get( item ) + 1 );
         }
