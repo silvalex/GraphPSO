@@ -67,6 +67,7 @@ public class Particle {
 			bestDimensions = Arrays.copyOf(dimensions, dimensions.length);
 		}
 	}
+	
 	@Override
 	/**
 	 * {@inheritDoc}

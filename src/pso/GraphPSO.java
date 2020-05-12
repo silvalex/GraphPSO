@@ -26,6 +26,14 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
 
+/**
+ * Optimises solutions for the Web service composition problem using
+ * Particle Swarm Optimisation (PSO) coupled with a graph-based solution
+ * representation. This class contains the application's entry point,
+ * as well as methods for carrying out the optimisation process.
+ * 
+ * @author sawczualex
+ */
 public class GraphPSO {
 
 	// PSO settings
@@ -74,7 +82,7 @@ public class GraphPSO {
 	public static List<Double> bestTimeSoFar = new ArrayList<Double>();
 	public static List<Double> bestCostSoFar = new ArrayList<Double>();
 
-	// Constants with of order of QoS attributes
+	// Constants with the order of QoS attributes
 	public static final int TIME = 0;
 	public static final int COST = 1;
 	public static final int AVAILABILITY = 2;
@@ -104,8 +112,16 @@ public class GraphPSO {
 	}
 
 	/**
-	 * Creates a functionally correct workflow, and runs the PSO to discover the
-	 * optimal services to be used in it.
+	 * Creates a functionally correct workflow, and runs PSO to discover the most optimal services
+	 * to be used in it.
+	 * 
+	 * @param lName - Name of log file to write to
+	 * @param hlName - Name of histogram file to write to
+	 * @param taskFileName - Name of file containing Web service composition task/request 
+	 * @param serviceFileName - Name of file containing information on Web services
+	 * @param taxonomyFileName - Name of file containing information on relationship between
+	 * output and input types
+	 * @param seed - Seed for random number generator, used for reproducing a specific run
 	 */
 	public GraphPSO(String lName, String hlName, String taskFileName, String serviceFileName, String taxonomyFileName, long seed) {
 		initialisationStartTime = System.currentTimeMillis();
@@ -114,11 +130,13 @@ public class GraphPSO {
 		histogramLogName = hlName;
 		random = new Random(seed);
 
+		// Parse files and figure out taxonomic relationship between inputs and outputs
 		parseWSCServiceFile(serviceFileName);
 		parseWSCTaskFile(taskFileName);
 		parseWSCTaxonomyFile(taxonomyFileName);
 		findConceptsForInstances();
 
+		// Create mock nodes to act as the start and end points of the service workflow
 		double[] mockQos = new double[4];
 		mockQos[TIME] = 0;
 		mockQos[COST] = 0;
@@ -149,7 +167,10 @@ public class GraphPSO {
 	//==========================================================================================================
 
 	/**
-	 * Conducts the particle swarm optimization.
+	 * Conducts the particle swarm optimisation.
+	 * 
+	 * @return String representation of the service graph corresponding
+	 * to the globally best solution encountered
 	 */
 	public String runPSO() {
 		// 1. Initialize the swarm
@@ -321,7 +342,7 @@ public class GraphPSO {
 	/**
 	 * Updates the velocity vector of a particle.
 	 *
-	 * @param p
+	 * @param p - Particle whose vector is to be updated
 	 */
 	public void updateVelocity(Particle p) {
 		float[] vel = p.velocity;
@@ -349,7 +370,7 @@ public class GraphPSO {
 	/**
 	 * Updates the position (i.e. dimension vector) of a particle.
 	 *
-	 * @param p
+	 * @param p - Particle whose position is to be updated
 	 */
 	public void updatePosition(Particle p) {
 		float newValue;
@@ -366,6 +387,13 @@ public class GraphPSO {
 		}
 	}
 
+	/**
+	 * Given a set of services deemed as relevant, this method assigns a unique integer value
+	 * for each service. This information is used during the decoding process.
+	 * 
+	 * @param relevant - Set of relevant services
+	 * @param serviceToIndexMap - Map of service name to index value
+	 */
 	private void mapServicesToIndices(Set<Node> relevant, Map<String,Integer> serviceToIndexMap) {
 		int i = 0;
 		for (Node r : relevant) {
@@ -519,10 +547,11 @@ public class GraphPSO {
 	}
 
 	/**
-	 * Recursive function for recreating taxonomy structure from file.
+	 * Helper function that recursively recreates the taxonomy structure from a file,
+	 * connecting children taxonomy nodes to their parents.
 	 *
-	 * @param parent - Nodes' parent
-	 * @param nodes
+	 * @param parent - Taxonomy node parent
+	 * @param nodes - List of children nodes of this parent 
 	 */
 	private void processTaxonomyChildren(TaxonomyNode parent, NodeList nodes) {
 		if (nodes != null && nodes.getLength() != 0) {
@@ -565,6 +594,12 @@ public class GraphPSO {
 		}
 	}
 
+	/**
+	 * Add references to this service node throughout the taxonomy tree,
+	 * based on the node's inputs and output values.
+	 * 
+	 * @param s - Service node to be added to taxonomy tree
+	 */
 	private void addServiceToTaxonomyTree(Node s) {
 		// Populate outputs
 	    Set<TaxonomyNode> seenConceptsOutput = new HashSet<TaxonomyNode>();
@@ -624,7 +659,8 @@ public class GraphPSO {
 
 	/**
 	 * Converts input, output, and service instance values to their corresponding
-	 * ontological parent.
+	 * ontological parent. This method should be called only once, before the
+	 * optimisation starts.
 	 */
 	private void findConceptsForInstances() {
 		Set<String> temp = new HashSet<String>();
@@ -663,6 +699,14 @@ public class GraphPSO {
     //
 	//==========================================================================================================
 
+	/**
+	 * Calculates the overall Quality of Service (QoS) attributes for a given
+	 * candidate. These QoS values are stored within the particle provided as
+	 * an argument.
+	 * 
+	 * @param graph - The candidate's corresponding service workflow
+	 * @param p - The candidate particle
+	 */
 	public void calculateOverallQoS(Graph graph, Particle p) {
 
         double a = 1.0;
@@ -687,6 +731,15 @@ public class GraphPSO {
         p.graphString = graph.toString();
 	}
 
+	/**
+	 * Calculates the fitness score of a particle based on its
+	 * Quality of Service (QoS) attributes. The fitness consists
+	 * of a weighted sum of normalised QoS attributes, where the
+	 * weights are set as constants in the GraphPSO class.
+	 * 
+	 * @param p - The given particle
+	 * @return fitness score
+	 */
 	public double calculateFitness(Particle p) {
 		double a = p.availability;
         double r = p.reliability;
@@ -702,6 +755,15 @@ public class GraphPSO {
         return p.fitness;
 	}
 
+	/**
+	 * Normalises availability score, using minimum and maximum availability
+	 * values defined as constants in the GraphPSO class. If the minimum and
+	 * maximum availability are the same, 1.0 is returned. The higher the
+	 * normalised value, the better.
+	 * 
+	 * @param availability - The score to be normalised
+	 * @return normalised availability value
+	 */
 	public double normaliseAvailability(double availability) {
 		if (MAXIMUM_AVAILABILITY - MINIMUM_AVAILABILITY == 0.0)
 			return 1.0;
@@ -709,6 +771,15 @@ public class GraphPSO {
 			return (availability - MINIMUM_AVAILABILITY)/(MAXIMUM_AVAILABILITY - MINIMUM_AVAILABILITY);
 	}
 
+	/**
+	 * Normalises the reliability score, using minimum and maximum reliability
+	 * values defined as constants in the GraphPSO class. If the minimum and
+	 * maximum reliability are the same, 1.0 is returned. The higher the
+	 * normalised value, the better.
+	 * 
+	 * @param reliability - The score to be normalised
+	 * @return normalised reliability score
+	 */
 	public double normaliseReliability(double reliability) {
 		if (MAXIMUM_RELIABILITY - MINIMUM_RELIABILITY == 0.0)
 			return 1.0;
@@ -716,6 +787,17 @@ public class GraphPSO {
 			return (reliability - MINIMUM_RELIABILITY)/(MAXIMUM_RELIABILITY - MINIMUM_RELIABILITY);
 	}
 
+	/**
+	 * Normalises the time score, using minimum and maximum time values defined
+	 * as constants in the GraphPSO class. If the minimum and maximum time are
+	 * the same, 1.0 is returned. As with availability and reliability, we want
+	 * the highest normalised value to be the better. Thus, the raw time value
+	 * (the lower, the better) is offset when calculating the normalised score
+	 * (the higher, the better).
+	 * 
+	 * @param time - The score to be normalised
+	 * @return normalised time score
+	 */
 	public double normaliseTime(double time) {
 		if (MAXIMUM_TIME - MINIMUM_TIME == 0.0)
 			return 1.0;
@@ -723,6 +805,17 @@ public class GraphPSO {
 			return (MAXIMUM_TIME - time)/(MAXIMUM_TIME - MINIMUM_TIME);
 	}
 
+	/**
+	 * Normalises the cost store, using minimum and maximum cost values defined
+	 * as constants in the GraphPSO class. If the minimum and maximum time are
+	 * the same, 1.0 is returned. As with availability and reliability, we want
+	 * the highest normalised value to be better. Thus, the raw cost value (the
+	 * lower, the better) is offset when calculating the normalised score (the
+	 * higher, the better).
+	 * 
+	 * @param cost - The score to be normalised
+	 * @return normalised cost score
+	 */
 	public double normaliseCost(double cost) {
 		if (MAXIMUM_COST - MINIMUM_COST == 0.0)
 			return 1.0;
@@ -732,10 +825,10 @@ public class GraphPSO {
 
 	/**
 	 * Uses the Bellman-Ford algorithm with negative weights to find the longest
-	 * path in an acyclic directed graph.
+	 * path in an directed acyclic graph.
 	 *
-	 * @param g
-	 * @return list of edges composing longest path
+	 * @param g - The directed acyclic graph
+	 * @return list of edges composing the longest path
 	 */
 	public double findLongestPath(Graph g) {
 		Map<String, Double> distance = new HashMap<String, Double>();
@@ -773,6 +866,16 @@ public class GraphPSO {
 		return totalTime;
 	}
 
+	/**
+	 * Decodes a new functionally correct composition graph according to the
+	 * particle weights provided.
+	 * 
+	 * @param start - Start node for the new graph
+	 * @param end - End node for the new graph
+	 * @param relevant - List of relevant service nodes, i.e. those considered for this composition task
+	 * @param weights - Weights from a given particle
+	 * @return
+	 */
 	public Graph createNewGraph(Node start, Node end, Set<Node> relevant, float[] weights) {
 
 		Graph newGraph = new Graph();
@@ -783,13 +886,12 @@ public class GraphPSO {
 		// Connect start node
 		connectCandidateToGraphByInputs(start, connections, newGraph, currentEndInputs);
 
-		Set<Node> seenNodes = new HashSet<Node>();
 		List<ListItem> candidateList = new ArrayList<ListItem>();
 
 		populateCandidateList(serviceToIndexMap, relevant, candidateList, weights);
 		Collections.sort(candidateList);
 
-		finishConstructingGraph(currentEndInputs, end, candidateList, connections, newGraph, seenNodes, relevant);
+		finishConstructingGraph(currentEndInputs, end, candidateList, connections, newGraph, relevant);
 
         // Keep track of nodes and edges for statistics
         for (String nodeName : newGraph.nodeMap.keySet())
@@ -799,6 +901,14 @@ public class GraphPSO {
 		return newGraph;
 	}
 
+	/**
+	 * Helper method to increment the count value for a string key
+	 * in a given map. If string is not already a key in map, it will
+	 * be added wih a count of 1.
+	 *  
+	 * @param map - Map to be updated
+	 * @param item - String item
+	 */
    public void addToCountMap(Map<String,Integer> map, String item) {
         if (map.containsKey( item )) {
             map.put( item, map.get( item ) + 1 );
@@ -809,6 +919,17 @@ public class GraphPSO {
     }
 
 
+   /**
+    * Adds relevant service nodes to the candidate list, which is provided as a parameter.
+    * This method associates each candidate to its corresponding particle weight.
+    * 
+    * @param serviceToIndexMap - Map that allows a service's index to be retrieved based
+    * on its name
+    * @param relevant - Set of relevant services, i.e. those considered for this composition
+    * task
+    * @param candidateList - The candidate list to be populated
+    * @param weights - The particle weights to associate with each given service
+    */
 	public void populateCandidateList(Map<String, Integer> serviceToIndexMap, Set<Node> relevant, List<ListItem> candidateList, float[] weights) {
 		// Go through all relevant nodes
 		for (Node n : relevant) {
@@ -821,11 +942,23 @@ public class GraphPSO {
 		}
 	}
 
+	/**
+	 * Helper method to finish constructing the decoded graph. It iteratively
+	 * adds services to the graph until the end node has all of its inputs fulfilled.
+	 * 
+	 * @param currentEndInputs - Set of end inputs to be fulfilled
+	 * @param end - The end node
+	 * @param candidateList - The list of candidate services to be added to the graph
+	 * @param connections - Map to track which values should be added to outgoing edges
+	 * @param newGraph - The decoded graph that is being built
+	 * @param relevant - Set of relevant services, i.e. those considered for this 
+	 * composition task
+	 */
 	public void finishConstructingGraph(Set<String> currentEndInputs, Node end, List<ListItem> candidateList, Map<String,Edge> connections,
-	        Graph newGraph, Set<Node> seenNodes, Set<Node> relevant) {
+	        Graph newGraph, Set<Node> relevant) {
 
 	 // While end cannot be connected to graph
-		while(!checkCandidateNodeSatisfied(connections, newGraph, end, end.getInputs(), null)){
+		while(!checkCandidateNodeSatisfied(connections, newGraph, end, end.getInputs())){
 			connections.clear();
 
             // Select node
@@ -838,7 +971,7 @@ public class GraphPSO {
                 // For all of the candidate inputs, check that there is a service already in the graph
                 // that can satisfy it
 
-                if (!checkCandidateNodeSatisfied(connections, newGraph, candidate, candidate.getInputs(), null)) {
+                if (!checkCandidateNodeSatisfied(connections, newGraph, candidate, candidate.getInputs())) {
                     connections.clear();
                 	continue candidateLoop;
                 }
@@ -858,8 +991,18 @@ public class GraphPSO {
         removeDanglingNodes(newGraph);
 	}
 
+	/**
+	 * Checks whether all of the inputs of a given candidate can be satisfied by the
+	 * outputs of nodes already in the graph.
+	 * 
+	 * @param connections - Map to track which values should be added to outgoing edges
+	 * @param newGraph - The decoded graph that is being built
+	 * @param candidate - The candidate node being checked
+	 * @param candInputs - Set of inputs for the candidate node
+	 * @return true if all inputs are satisfied, false otherwise
+	 */
 	public boolean checkCandidateNodeSatisfied(Map<String, Edge> connections, Graph newGraph,
-			Node candidate, Set<String> candInputs, Set<Node> fromNodes) {
+			Node candidate, Set<String> candInputs) {
 
 		Set<String> candidateInputs = new HashSet<String>(candInputs);
 		Set<String> startIntersect = new HashSet<String>();
@@ -867,44 +1010,41 @@ public class GraphPSO {
 		// Check if the start node should be considered
 		Node start = newGraph.nodeMap.get("start");
 
-		if (fromNodes == null || fromNodes.contains(start)) {
-    		for(String output : start.getOutputs()) {
-    			Set<String> inputVals = taxonomyMap.get(output).servicesWithInput.get(candidate);
-    			if (inputVals != null) {
-    				candidateInputs.removeAll(inputVals);
-    				startIntersect.addAll(inputVals);
-    			}
-    		}
-
-    		if (!startIntersect.isEmpty()) {
-    			Edge startEdge = new Edge(startIntersect);
-    			startEdge.setFromNode(start);
-    			startEdge.setToNode(candidate);
-    			connections.put(start.getName(), startEdge);
-    		}
+		for(String output : start.getOutputs()) {
+			Set<String> inputVals = taxonomyMap.get(output).servicesWithInput.get(candidate);
+			if (inputVals != null) {
+				candidateInputs.removeAll(inputVals);
+				startIntersect.addAll(inputVals);
+			}
 		}
+
+		if (!startIntersect.isEmpty()) {
+			Edge startEdge = new Edge(startIntersect);
+			startEdge.setFromNode(start);
+			startEdge.setToNode(candidate);
+			connections.put(start.getName(), startEdge);
+		}
+		
 
 		for (String input : candidateInputs) {
 			boolean found = false;
 			for (Node s : taxonomyMap.get(input).servicesWithOutput) {
-			    if (fromNodes == null || fromNodes.contains(s)) {
-    				if (newGraph.nodeMap.containsKey(s.getName())) {
-    					Set<String> intersect = new HashSet<String>();
-    					intersect.add(input);
+				if (newGraph.nodeMap.containsKey(s.getName())) {
+					Set<String> intersect = new HashSet<String>();
+					intersect.add(input);
 
-    					Edge mapEdge = connections.get(s.getName());
-    					if (mapEdge == null) {
-    						Edge e = new Edge(intersect);
-    						e.setFromNode(newGraph.nodeMap.get(s.getName()));
-    						e.setToNode(candidate);
-    						connections.put(e.getFromNode().getName(), e);
-    					} else
-    						mapEdge.getIntersect().addAll(intersect);
+					Edge mapEdge = connections.get(s.getName());
+					if (mapEdge == null) {
+						Edge e = new Edge(intersect);
+						e.setFromNode(newGraph.nodeMap.get(s.getName()));
+						e.setToNode(candidate);
+						connections.put(e.getFromNode().getName(), e);
+					} else
+						mapEdge.getIntersect().addAll(intersect);
 
-    					found = true;
-    					break;
-    				}
-			    }
+					found = true;
+					break;
+				}
 			}
 			// If that input cannot be satisfied, move on to another candidate
 			// node to connect
@@ -916,6 +1056,15 @@ public class GraphPSO {
 		return true;
 	}
 
+	/**
+	 * Connects candidate node to graph, including the appropriate edges.
+	 *  
+	 * @param candidate - Node to be added to graph
+	 * @param connections - Map containing edges to be added
+	 * @param graph - The decoded graph being constructed
+	 * @param currentEndInputs - Set of inputs for the end node that
+	 * have already been satisfied
+	 */
 	public void connectCandidateToGraphByInputs(Node candidate, Map<String,Edge> connections, Graph graph, Set<String> currentEndInputs) {
 
 		graph.nodeMap.put(candidate.getName(), candidate);
@@ -931,6 +1080,13 @@ public class GraphPSO {
 		}
 	}
 
+	/**
+	 * Removes the nodes from a decoded graph that do not contribute
+	 * (directly or indirectly) to fulfilling the inputs of the end
+	 * node, i.e. they are 'dangling'.
+	 * 
+	 * @param graph - The graph to be cleaned
+	 */
 	public void removeDanglingNodes(Graph graph) {
 	    List<Node> dangling = new ArrayList<Node>();
 	    for (Node g : graph.nodeMap.values()) {
@@ -943,6 +1099,13 @@ public class GraphPSO {
 	    }
 	}
 
+	/**
+	 * Helper recursive method for removing nodes that do not contribute
+	 * to fulfilling the inputs of the end node.
+	 * 
+	 * @param n - Current node being checked for deletion
+	 * @param graph - The graph to be cleaned
+	 */
 	private void removeDangling(Node n, Graph graph) {
 	    if (n.getOutgoingEdgeList().isEmpty()) {
 	        graph.nodeMap.remove( n.getName() );
@@ -959,90 +1122,13 @@ public class GraphPSO {
     //                                              AUXILIARY METHODS
     //
 	//==========================================================================================================
-
+	
 	/**
-	 * Goes through the service list and retrieves only those services which
-	 * could be part of the composition task requested by the user.
-	 *
-	 * @param serviceMap
-	 * @return relevant services
+	 * Estimates Quality of Service (QoS) normalisation bounds based on
+	 * a provided set of services.
+	 *  
+	 * @param services - The set of services
 	 */
-	private Set<Node> getRelevantServices(Map<String,Node> serviceMap, Set<String> inputs, Set<String> outputs) {
-		// Copy service map values to retain original
-		Collection<Node> services = new ArrayList<Node>(serviceMap.values());
-
-		Set<String> cSearch = new HashSet<String>(inputs);
-		Set<Node> sSet = new HashSet<Node>();
-		Set<Node> sFound = discoverService(services, cSearch);
-		while (!sFound.isEmpty()) {
-			sSet.addAll(sFound);
-			services.removeAll(sFound);
-			for (Node s: sFound) {
-				cSearch.addAll(s.getOutputs());
-			}
-			sFound.clear();
-			sFound = discoverService(services, cSearch);
-		}
-
-		if (isSubsumed(outputs, cSearch)) {
-			return sSet;
-		}
-		else {
-			String message = "It is impossible to perform a composition using the services and settings provided.";
-			System.out.println(message);
-			System.exit(0);
-			return null;
-		}
-	}
-
-	/**
-	 * Discovers all services from the provided collection whose
-	 * input can be satisfied either (a) by the input provided in
-	 * searchSet or (b) by the output of services whose input is
-	 * satisfied by searchSet (or a combination of (a) and (b)).
-	 *
-	 * @param services
-	 * @param searchSet
-	 * @return set of discovered services
-	 */
-	private Set<Node> discoverService(Collection<Node> services, Set<String> searchSet) {
-		Set<Node> found = new HashSet<Node>();
-		for (Node s: services) {
-			if (isSubsumed(s.getInputs(), searchSet))
-				found.add(s);
-		}
-		return found;
-	}
-
-	/**
-	 * Checks whether set of inputs can be completely satisfied by the search
-	 * set, making sure to check descendants of input concepts for the subsumption.
-	 *
-	 * @param inputs
-	 * @param searchSet
-	 * @return true if search set subsumed by input set, false otherwise.
-	 */
-	public boolean isSubsumed(Set<String> inputs, Set<String> searchSet) {
-		boolean satisfied = true;
-		for (String input : inputs) {
-			Set<String> subsumed = taxonomyMap.get(input).getSubsumedConcepts();
-			if (!isIntersection( searchSet, subsumed )) {
-				satisfied = false;
-				break;
-			}
-		}
-		return satisfied;
-	}
-
-    private static boolean isIntersection( Set<String> a, Set<String> b ) {
-        for ( String v1 : a ) {
-            if ( b.contains( v1 ) ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
 	private void calculateNormalisationBounds(Set<Node> services) {
 		for(Node service: services) {
 			double[] qos = service.getQos();
@@ -1083,6 +1169,13 @@ public class GraphPSO {
     //
 	//==========================================================================================================
 
+	/**
+	 * Writes information and statistics of the PSO run to the log and
+	 * histogram files.
+	 * 
+	 * @param finalGraph - A string representation of the final graph
+	 * identified as the best solution.
+	 */
 	public void writeLogs(String finalGraph) {
 		try {
 			FileWriter writer = new FileWriter(new File(logName));
