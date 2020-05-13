@@ -92,4 +92,3 @@ This code was developed at the School of Engineering and Computer Science (ECS) 
 * `graph_pso.sh`: This is the bash script that defines the run of a single instance of the algorithm. It copies the code and dataset to the computer selected by the grid, for running locally. It then copies the log and histogram outputs to a directory for collection. Note that the paths throughout this script must be modified to match your own directory tree.
 * `run_pso_grid_2008.sh`: This script repeatedly submits `graph_pso.sh` to the grid, testing all the different tasks in WSC-2008.
 * `run_pso_grid_2009.sh`: This script repeatedly submits `graph_pso.sh` to the grid, testing all the different tasks in WSC-2009.
-* `run_pso_grid_2009.sh`:
